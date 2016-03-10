@@ -1,0 +1,85 @@
+---
+title: "adad"
+output: html_document
+---
+
+Assignment
+---
+The overall goal of this assignment is to explore the National Emissions Inventory database and see what it say about fine particulate matter pollution in the United states over the 10-year period 1999–2008. You may use any R package you
+want to support your analysis.
+
+Questions
+---
+You must address the following questions and tasks in your exploratory analysis. For each question/task you will need to make a single plot. Unless specified, you can use any plotting system in R to make your plot.
+
+1. Have total emissions from PM2.5 decreased in the United States from 1999 to 2008? Using the base plotting system, make a plot showing the total PM2.5 emission from all sources for each of the years 1999, 2002, 2005, and 2008.
+
+```{r}
+# Loading files:
+NEI <- readRDS("data/summarySCC_PM25.rds")
+SCC <- readRDS("data/Source_Classification_Code.rds")
+
+# Total emission by year
+totalByYear <- tapply(NEI$Emissions, NEI$year, FUN = sum)
+totalByYear <- data.frame(year=names(totalByYear), emission=totalByYear)
+options(scipen=5)
+barplot(height=totalByYear$emission, names.arg = totalByYear$year, xlab = "Year", ylab = "total PM2.5 emission [t]", main = "Annual PM2.5 emission")
+
+```
+
+2. Have total emissions from PM2.5 decreased in the Baltimore City, Maryland (fips == "24510") from 1999 to 2008? Use the base plotting system to make a plot answering this question.
+
+```{r}
+# Total emission by year in Baltimore City
+baltimore <- NEI[NEI$fips==24510,]
+plotData <- aggregate(Emissions ~ year, baltimore, sum)
+options(scipen=5)
+barplot(height=plotData$Emissions, names.arg = plotData$year, xlab = "Year", ylab = "total PM2.5 emission [t]", main = "Annual PM2.5 emission in Baltimore City")
+
+```
+
+3. Of the four types of sources indicated by the type (point, nonpoint, onroad, nonroad) variable, which of these four sources have seen decreases in emissions from 1999–2008 for Baltimore City? Which have seen increases in emissions from 1999–2008? Use the ggplot2 plotting system to make a plot answer this question.
+
+```{r}
+library(ggplot2)
+plotData <- aggregate(Emissions ~ year + type, baltimore, sum)
+options(scipen=5)
+ggplot(data=plotData, aes(year, Emissions, color=type)) + geom_line() + geom_point() + xlab("Year") + ylab("total PM2.5 emission [t]") + ggtitle("Annual PM2.5 emission change in Baltimore City by type")
+```
+
+4. Across the United States, how have emissions from coal combustion-related sources changed from 1999–2008?
+
+```{r}
+# Slow operation :(
+mergedInput <- merge(NEI, SCC, by="SCC")
+coal <- mergedInput[grepl(".*[Cc]oal.*", mergedInput$Short.Name),]
+plotData <- aggregate(Emissions ~ year, coal, sum)
+ggplot(data=plotData, aes(factor(year), Emissions)) + geom_bar(stat="identity") + xlab("Year") + ylab("total PM2.5 emission [t]") + ggtitle("Annual PM2.5 emission change from coal combustion-related sources")
+```
+
+5. How have emissions from motor vehicle sources changed from 1999–2008 in Baltimore City?
+
+```{r}
+onRoad <- mergedInput[grepl(".*Onroad.*", mergedInput$Data.Category),]
+onRoad <- onRoad[onRoad$fips==24510,]
+plotData <- aggregate(Emissions ~ year, onRoad, sum)
+ggplot(data=plotData, aes(factor(year), Emissions)) + geom_bar(stat="identity") + xlab("Year") + ylab("total PM2.5 emission [t]") + ggtitle("Annual PM2.5 emission change from motor vehicle sources in Baltimore City")
+```
+
+
+6. Compare emissions from motor vehicle sources in Baltimore City with emissions from motor vehicle sources in Los Angeles County, California (fips == "06037"). Which city has seen greater changes over time in motor vehicle emissions?
+```{r}
+onRoad <- mergedInput[grepl(".*Onroad.*", mergedInput$Data.Category),]
+onRoad <- onRoad[(onRoad$fips=="24510"|onRoad$fips=="06037"),]
+plotData <- aggregate(Emissions ~ year + fips, onRoad, sum)
+plotData$fips[plotData$fips=="24510"] <- "Baltimore City"
+plotData$fips[plotData$fips=="06037"] <- "Los Angeles County"
+ggplot(data=plotData, aes(year, Emissions, color=fips)) + geom_point() + geom_line() + xlab("Year") + ylab("total PM2.5 emission [t]") + ggtitle("Annual PM2.5 emission change from motor vehicle sources in Baltimore City by type") + scale_colour_discrete(name="Cities")
+```
+
+
+You can also embed plots, for example:
+
+```{r, echo=FALSE}
+# plot(cars)
+```
