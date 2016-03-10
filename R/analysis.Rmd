@@ -1,10 +1,12 @@
 ---
-title: "adad"
+title: "PM2.5 Emission analysis in US 1999-2008"
 output: html_document
 ---
 
+
 Assignment
 ---
+**This notebook represents my work on the second assigment in Exploratory Data Analysis course on Coursera.**
 The overall goal of this assignment is to explore the National Emissions Inventory database and see what it say about fine particulate matter pollution in the United states over the 10-year period 1999–2008. You may use any R package you
 want to support your analysis.
 
@@ -16,22 +18,21 @@ You must address the following questions and tasks in your exploratory analysis.
 
 ```{r}
 # Loading files:
-NEI <- readRDS("data/summarySCC_PM25.rds")
-SCC <- readRDS("data/Source_Classification_Code.rds")
+if(!exists("em_data")) em_data <- readRDS("../data/summarySCC_PM25.rds")
+if(!exists("scc_data")) scc_data <- readRDS("../data/Source_Classification_Code.rds")
 
 # Total emission by year
-totalByYear <- tapply(NEI$Emissions, NEI$year, FUN = sum)
+totalByYear <- tapply(em_data$Emissions, em_data$year, FUN = sum)
 totalByYear <- data.frame(year=names(totalByYear), emission=totalByYear)
 options(scipen=5)
 barplot(height=totalByYear$emission, names.arg = totalByYear$year, xlab = "Year", ylab = "total PM2.5 emission [t]", main = "Annual PM2.5 emission")
-
 ```
 
 2. Have total emissions from PM2.5 decreased in the Baltimore City, Maryland (fips == "24510") from 1999 to 2008? Use the base plotting system to make a plot answering this question.
 
 ```{r}
 # Total emission by year in Baltimore City
-baltimore <- NEI[NEI$fips==24510,]
+baltimore <- em_data[em_data$fips==24510,]
 plotData <- aggregate(Emissions ~ year, baltimore, sum)
 options(scipen=5)
 barplot(height=plotData$Emissions, names.arg = plotData$year, xlab = "Year", ylab = "total PM2.5 emission [t]", main = "Annual PM2.5 emission in Baltimore City")
@@ -51,7 +52,7 @@ ggplot(data=plotData, aes(year, Emissions, color=type)) + geom_line() + geom_poi
 
 ```{r}
 # Slow operation :(
-mergedInput <- merge(NEI, SCC, by="SCC")
+if(!exists("mergedInput")) mergedInput <- merge(em_data, scc_data, by="SCC")
 coal <- mergedInput[grepl(".*[Cc]oal.*", mergedInput$Short.Name),]
 plotData <- aggregate(Emissions ~ year, coal, sum)
 ggplot(data=plotData, aes(factor(year), Emissions)) + geom_bar(stat="identity") + xlab("Year") + ylab("total PM2.5 emission [t]") + ggtitle("Annual PM2.5 emission change from coal combustion-related sources")
@@ -77,9 +78,3 @@ plotData$fips[plotData$fips=="06037"] <- "Los Angeles County"
 ggplot(data=plotData, aes(year, Emissions, color=fips)) + geom_point() + geom_line() + xlab("Year") + ylab("total PM2.5 emission [t]") + ggtitle("Annual PM2.5 emission change from motor vehicle sources in Baltimore City by type") + scale_colour_discrete(name="Cities")
 ```
 
-
-You can also embed plots, for example:
-
-```{r, echo=FALSE}
-# plot(cars)
-```
